@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum ProductStatus { DRAFT ACTIVE ARCHIVED }
+enum OrderStatus { PENDING PAID PROCESSING SHIPPED DELIVERED CANCELLED REFUNDED }
+
+model Category {
+  id String @id @default(cuid())
+  name String
+  slug String @unique
+  products Product[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Product {
+  id String @id @default(cuid())
+  name String
+  slug String @unique
+  description String @default("")
+  price Int // Amount in smallest currency unit (kobo for NGN).
+  currency String @default("NGN")
+  sku String? @unique
+  stock Int @default(0)
+  status ProductStatus @default(DRAFT)
+  images String[]
+  categoryId String?
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([status, createdAt])
+  @@index([categoryId])
+}
+
+model Order {
+  id String @id @default(cuid())
+  orderNumber String @unique
+  email String
+  customerName String
+  phone String?
+  status OrderStatus @default(PENDING)
+  currency String @default("NGN")
+  subtotal Int
+  shipping Int @default(0)
+  total Int
+  paymentReference String? @unique
+  items OrderItem[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([email, createdAt])
+  @@index([status, createdAt])
+}
+
+model OrderItem {
+  id String @id @default(cuid())
+  orderId String
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  productName String
+  productSku String?
+  quantity Int
+  unitPrice Int
+  lineTotal Int
+  @@index([orderId])
+  @@index([productId])
+}
